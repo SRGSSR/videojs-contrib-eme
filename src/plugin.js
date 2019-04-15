@@ -1,4 +1,5 @@
 import videojs from 'video.js';
+import window from 'global/window';
 import { standard5July2016, getSupportedKeySystem } from './eme';
 import {
   default as fairplay,
@@ -212,30 +213,32 @@ const onPlayerReady = (player, emeError) => {
 
   setupSessions(player);
 
-  // Support EME 05 July 2016
-  // Chrome 42+, Firefox 47+, Edge
-  player.tech_.el_.addEventListener('encrypted', (event) => {
-    // TODO convert to videojs.log.debug and add back in
-    // https://github.com/videojs/video.js/pull/4780
-    // videojs.log('eme', 'Received an \'encrypted\' event');
-    setupSessions(player);
-    handleEncryptedEvent(event, getOptions(player), player.eme.sessions, player.tech_)
-      .catch(emeError);
-  });
-  // Support Safari EME with FairPlay
-  // (also used in early Chrome or Chrome with EME disabled flag)
-  player.tech_.el_.addEventListener('webkitneedkey', (event) => {
-    // TODO convert to videojs.log.debug and add back in
-    // https://github.com/videojs/video.js/pull/4780
-    // videojs.log('eme', 'Received a \'webkitneedkey\' event');
+  if (videojs.browser.IS_ANY_SAFARI && window.navigator.userAgent.indexOf('10_14_4') !== -1) {
+    // Support Safari EME with FairPlay
+    // (also used in early Chrome or Chrome with EME disabled flag)
+    player.tech_.el_.addEventListener('webkitneedkey', (event) => {
+      // TODO convert to videojs.log.debug and add back in
+      // https://github.com/videojs/video.js/pull/4780
+      // videojs.log('eme', 'Received a \'webkitneedkey\' event');
 
-    // TODO it's possible that the video state must be cleared if reusing the same video
-    // element between sources
-    setupSessions(player);
-    handleWebKitNeedKeyEvent(event, getOptions(player), player.tech_)
-      .catch(emeError);
-  });
-
+      // TODO it's possible that the video state must be cleared if reusing the same video
+      // element between sources
+      setupSessions(player);
+      handleWebKitNeedKeyEvent(event, getOptions(player), player.tech_)
+        .catch(emeError);
+    });
+  } else {
+    // Support EME 05 July 2016
+    // Chrome 42+, Firefox 47+, Edge
+    player.tech_.el_.addEventListener('encrypted', (event) => {
+      // TODO convert to videojs.log.debug and add back in
+      // https://github.com/videojs/video.js/pull/4780
+      // videojs.log('eme', 'Received an \'encrypted\' event');
+      setupSessions(player);
+      handleEncryptedEvent(event, getOptions(player), player.eme.sessions, player.tech_)
+        .catch(emeError);
+    });
+  }
   // EDGE still fires msneedkey, but should use encrypted instead
   if (videojs.browser.IS_EDGE) {
     return;
@@ -293,7 +296,7 @@ const eme = function(options = {}) {
     * @param    {Object} [emeOptions={}]
     *           An object of eme plugin options.
     * @param    {Function} [callback=function(){}]
-    * @param    {Boolean} [suppressErrorIfPossible=false]
+    * @param    {boolean} [suppressErrorIfPossible=false]
     */
     initializeMediaKeys(emeOptions = {}, callback = function() {}, suppressErrorIfPossible = false) {
       // TODO: this should be refactored and renamed to be less tied
