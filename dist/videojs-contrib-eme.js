@@ -900,7 +900,7 @@
 
     setupSessions(player);
 
-    if (videojs.browser.IS_ANY_SAFARI && window.navigator.userAgent.indexOf('10_14_4') !== -1) {
+    if (window.navigator.userAgent.match(/Safari/i) && !window.navigator.userAgent.match(/Chrome/i)) {
       // Support Safari EME with FairPlay
       // (also used in early Chrome or Chrome with EME disabled flag)
       player.tech_.el_.addEventListener('webkitneedkey', function (event) {
